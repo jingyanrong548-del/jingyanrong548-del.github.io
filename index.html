@@ -118,12 +118,12 @@
         // --- 应用主逻辑 ---
         var CoolProp = {
             onRuntimeInitialized: function() {
+                // CoolProp 准备就绪后，手动调用我们的应用初始化函数
                 initializeApp();
             }
         };
 
         function initializeApp() {
-            // ... (这里是您应用的主 JavaScript 逻辑代码，与上一版完全相同) ...
             const ui = {
                 refrigerant: document.getElementById('refrigerant'),
                 evapTemp: document.getElementById('evapTemp'),
@@ -266,10 +266,12 @@
             }
             
             // --- 最终的初始化逻辑 ---
+            // 激活按钮并绑定事件
             ui.calculateBtn.disabled = false;
             ui.calculateBtn.textContent = '开始计算';
             ui.calculateBtn.addEventListener('click', calculateAndDisplay);
             
+            // 执行首次计算
             calculateAndDisplay();
         }
     </script>
