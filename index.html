@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>立式气液分离器计算器 (在线版)</title>
+    <style>
+        :root {
+            --primary-color: #007bff; --secondary-color: #495057; --background-color: #f4f7f9;
+            --surface-color: #ffffff; --text-color: #212529; --border-color: #dee2e6;
+            --shadow-color: rgba(0, 0, 0, 0.08); --danger-color: #dc3545; --disabled-color: #6c757d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px;
+            display: flex; justify-content: center; align-items: flex-start; min-height: 100vh;
+        }
+        .container {
+            width: 100%; max-width: 960px; background: var(--surface-color); border-radius: 12px;
+            box-shadow: 0 6px 20px var(--shadow-color); padding: 25px 40px; box-sizing: border-box;
+        }
+        h1, h2 {
+            text-align: center; color: var(--primary-color); border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px; margin-top: 10px; margin-bottom: 25px;
+        }
+        .main-layout { display: grid; grid-template-columns: 1fr; gap: 40px; }
+        @media (min-width: 900px) { .main-layout { grid-template-columns: 1fr 300px; } }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 8px; font-weight: 500; color: var(--secondary-color); font-size: 14px; }
+        input, select { padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 16px; width: 100%; box-sizing: border-box; transition: all 0.2s ease-in-out; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2); }
+        button {
+            grid-column: 1 / -1; margin-top: 10px; padding: 14px 20px; font-size: 18px;
+            font-weight: bold; color: #fff; background: linear-gradient(135deg, #007bff, #0056b3);
+            border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+        }
+        button:hover { box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3); transform: translateY(-2px); }
+        button:disabled { background: var(--disabled-color); cursor: not-allowed; transform: none; box-shadow: none; }
+        .results-section, .diagram-section { margin-top: 30px; }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
+        .result-item {
+            background-color: #f8f9fa; padding: 15px; border-radius: 8px;
+            text-align: center; border: 1px solid var(--border-color);
+        }
+        .result-item .label { font-size: 13px; color: var(--secondary-color); }
+        .result-item .value { font-size: 20px; font-weight: 600; color: var(--primary-color); margin-top: 5px; word-wrap: break-word; }
+        .result-item .unit { font-size: 12px; margin-left: 3px; }
+        #mainResultItem { background-color: #d1ecff; border-color: var(--primary-color); }
+        .diagram-container { width: 100%; max-width: 250px; margin: 0 auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; }
+        .diagram-container svg { width: 100%; height: auto; }
+        .info-section { margin-top: 30px; padding: 15px; background-color: #eef2f5; border-left: 4px solid var(--secondary-color); font-size: 14px; }
+        .error-message {
+            color: var(--danger-color); text-align: center; font-weight: bold; margin-top: 15px; padding: 10px;
+            border: 1px solid var(--danger-color); border-radius: 6px; background-color: #f8d7da; display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header><h1>立式低压气液分离器计算器</h1></header>
+        <main class="main-layout">
+            <div class="calculation-area">
+                <section class="input-section">
+                    <h2>输入参数</h2>
+                    <div class="form-grid">
+                        <div class="form-group"><label for="refrigerant">制冷工质</label><select id="refrigerant"><option value="R134a">R134a</option><option value="Ammonia">R717 (氨)</option><option value="R22">R22</option><option value="R404A">R404A</option><option value="R407C">R407C</option><option value="R410A">R410A</option><option value="R507A">R507A</option></select></div>
+                        <div class="form-group"><label for="gasVolumeFlow">气体体积流量 V<sub>tot</sub> (m³/s)</label><input type="number" id="gasVolumeFlow" value="0.15" step="0.01"></div>
+                        <div class="form-group"><label for="evapTemp">分离器内温度 T<sub>o</sub> (°C)</label><input type="number" id="evapTemp" value="-50" step="1"></div>
+                        <div class="form-group"><label for="safetyFactor">安全系数 C</label><input type="number" id="safetyFactor" value="0.8" step="0.05"></div>
+                        <div class="form-group"><label for="gravity">重力加速度 g (m/s²)</label><input type="number" id="gravity" value="9.81" step="0.01" disabled></div>
+                        <div class="form-group"><label for="dropletSize">液滴直径 D<sub>p</sub> (μm)</label><input type="number" id="dropletSize" value="152" step="1"></div>
+                    </div>
+                    <button type="button" id="calculateBtn" disabled>正在初始化核心库...</button>
+                    <p id="errorMessage" class="error-message"></p>
+                </section>
+                <section class="results-section">
+                    <h2>计算结果</h2>
+                    <div class="results-grid">
+                        <div class="result-item" id="mainResultItem"><div class="label">计算内径 D<sub>v</sub></div><div><span class="value" id="resultDv">--</span><span class="unit"> m</span></div></div>
+                        <div class="result-item"><div class="label">设计流速 v<sub>d</sub></div><div><span class="value" id="resultVd">--</span><span class="unit"> m/s</span></div></div>
+                        <div class="result-item"><div class="label">终端速度 v<sub>t</sub></div><div><span class="value" id="resultVt">--</span><span class="unit"> m/s</span></div></div>
+                        <div class="result-item"><div class="label">液体密度 ρ<sub>l</sub></div><div><span class="value" id="resultRhoL">--</span><span class="unit"> kg/m³</span></div></div>
+                        <div class="result-item"><div class="label">气体密度 ρ<sub>g</sub></div><div><span class="value" id="resultRhoG">--</span><span class="unit"> kg/m³</span></div></div>
+                        <div class="result-item"><div class="label">液体粘度 μ<sub>l</sub></div><div><span class="value" id="resultMuL">--</span><span class="unit"> Pa·s</span></div></div>
+                        <div class="result-item"><div class="label">气体粘度 μ<sub>g</sub></div><div><span class="value" id="resultMuG">--</span><span class="unit"> Pa·s</span></div></div>
+                        <div class="result-item"><div class="label">阻力系数 C<sub>d</sub></div><div><span class="value" id="resultCd">--</span></div></div>
+                        <div class="result-item"><div class="label">雷诺数 Re</div><div><span class="value" id="resultRe">--</span></div></div>
+                    </div>
+                </section>
+            </div>
+            <aside class="sidebar">
+                <section class="diagram-section">
+                    <h2>结构示意图</h2>
+                    <div class="diagram-container"><svg id="separatorDiagram" viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg"><path d="M20,10 C20,0 80,0 80,10 V180 C80,195 20,195 20,180 V10 Z" fill="#F0F0F0" stroke="#333" stroke-width="1"/><text x="50" y="25" font-size="8" text-anchor="middle">Vapour</text><path id="liquidPath" d="M21,180 C21,194 79,194 79,180 V140 H21 Z" fill="#87CEEB" opacity="0.8"/><line x1="85" y1="130" x2="85" y2="150" stroke="#333" stroke-width="0.5"/><line x1="83" y1="130" x2="87" y2="130" stroke="#333" stroke-width="0.5"/><line x1="83" y1="150" x2="87" y2="150" stroke="#333" stroke-width="0.5"/><text x="88" y="141" font-size="6">(2.5 to 3) Ds</text><line x1="85" y1="170" x2="85" y2="190" stroke="#333" stroke-width="0.5"/><line x1="83" y1="170" x2="87" y2="170" stroke="#333" stroke-width="0.5"/><line x1="83" y1="190" x2="87" y2="190" stroke="#333" stroke-width="0.5"/><text x="88" y="181" font-size="6">0.3 Ds</text><line x1="85" y1="40" x2="85" y2="100" stroke="#333" stroke-width="0.5"/><line x1="83" y1="40" x2="87" y2="40" stroke="#333" stroke-width="0.5"/><line x1="83" y1="100" x2="87" y2="100" stroke="#333" stroke-width="0.5"/><text x="88" y="71" font-size="6">1.2 Ds</text><g><line x1="40" y1="60" x2="40" y2="50" stroke="#000" stroke-width="0.7"/><polygon points="38,52 42,52 40,48" fill="#000"/><text x="35" y="55" font-size="6">vd</text></g><g><line x1="60" y1="60" x2="60" y2="70" stroke="#c00" stroke-width="0.7"/><polygon points="58,68 62,68 60,72" fill="#c00"/><text x="65" y="65" font-size="6">vt</text></g><text x="50" y="115" font-size="6" text-anchor="middle">Vapour-Liquid</text><text x="50" y="125" font-size="6" text-anchor="middle">Max.liq level</text><text x="50" y="135" font-size="6" text-anchor="middle">Liquid</text><text x="50" y="150" font-size="6" text-anchor="middle">Min.liq level</text><text x="50" y="170" font-size="6" text-anchor="middle">Oil</text></svg></div>
+                </section>
+            </aside>
+            <div class="visualization-section" style="grid-column: 1 / -1;">
+                <h2>性能曲线</h2>
+                <canvas id="performanceChart"></canvas>
+            </div>
+            <div class="info-section" style="grid-column: 1 / -1;">
+                <p><strong>注：</strong>本程序计算过程基于 Alfa Laval 技术指导手册，物性计算采用高精度开源库 **CoolProp**，仅供个人研究参考。计算结果不作为最终工程设计依据。</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- 嵌入的 Chart.js v3.9.1 ---
+        // 为了避免内容过长，此处省略。请确保将Chart.js的完整代码粘贴到这里。
+    </script>
+    <script>
+        // --- 嵌入的 CoolProp.js v6.4.1 ---
+        // 为了避免内容过长，此处省略。请确保将CoolProp.js的完整代码粘贴到这里。
+    </script>
+    
+    <script>
+        // --- 应用主逻辑 ---
+        var CoolProp = {
+            onRuntimeInitialized: function() {
+                // CoolProp 准备就绪后，手动调用我们的应用初始化函数
+                initializeApp();
+            }
+        };
+
+        function initializeApp() {
+            const ui = {
+                refrigerant: document.getElementById('refrigerant'),
+                evapTemp: document.getElementById('evapTemp'),
+                gasVolumeFlow: document.getElementById('gasVolumeFlow'),
+                safetyFactor: document.getElementById('safetyFactor'),
+                gravity: document.getElementById('gravity'),
+                dropletSize: document.getElementById('dropletSize'),
+                calculateBtn: document.getElementById('calculateBtn'),
+                errorMessage: document.getElementById('errorMessage'),
+                chartCanvas: document.getElementById('performanceChart'),
+            };
+            let chartInstance = null;
+            
+            function performCalculation(params) {
+                 const { refrigerant, T, V_tot, C, g, Dp } = params;
+                const T_K = T + 273.15;
+
+                if (typeof CoolProp === 'undefined' || typeof CoolProp.PropsSI !== 'function') {
+                    throw new Error("核心计算库 CoolProp 未能正确加载或初始化。");
+                }
+                
+                let rho_l, rho_g, mu_l, mu_g;
+                try {
+                    rho_l = CoolProp.PropsSI('D', 'T', T_K, 'Q', 0, refrigerant); 
+                    rho_g = CoolProp.PropsSI('D', 'T', T_K, 'Q', 1, refrigerant);
+                    mu_l = CoolProp.PropsSI('V', 'T', T_K, 'Q', 0, refrigerant); 
+                    mu_g = CoolProp.PropsSI('V', 'T', T_K, 'Q', 1, refrigerant);
+                } catch (error) {
+                    throw new Error(`无法计算 ${refrigerant} 在 ${T}°C 时的物性。温度可能超出有效范围。`);
+                }
+                
+                if (isNaN(rho_l) || isNaN(rho_g) || rho_l <= rho_g) {
+                    throw new Error("物性计算失败或不符合物理规律。");
+                }
+
+                let vt = 0.1; 
+                let Re = 0, Cd = 0;
+                for (let i = 0; i < 100; i++) {
+                    Re = (rho_g * vt * Dp) / mu_g;
+                    Cd = (Re === 0) ? Infinity : (24 / Re) + (3 / Math.sqrt(Re)) + 0.34;
+                    const vt_new = Math.sqrt((4 * g * Dp * (rho_l - rho_g)) / (3 * Cd * rho_g));
+                    if (Math.abs(vt_new - vt) < 1e-8 || isNaN(vt_new)) { vt = vt_new; break; }
+                    vt = vt_new;
+                }
+
+                if (isNaN(vt)) throw new Error("终端速度计算失败，请检查输入参数。");
+
+                const vd = C * vt;
+                const Dv = Math.sqrt((4 * V_tot) / (Math.PI * vd));
+
+                return { Dv, vd, vt, rho_l, rho_g, mu_l, mu_g, Cd, Re, inputs: params };
+            }
+
+            function updateUI(results) {
+                ui.errorMessage.style.display = 'none';
+                const formatNumber = num => {
+                    if (isNaN(num)) return '--';
+                    if (num === 0) return '0';
+                    const absNum = Math.abs(num);
+                    if (absNum > 1000) return num.toFixed(0);
+                    if (absNum >= 1) return num.toFixed(2);
+                    if (absNum < 0.001 && absNum > 0) return num.toExponential(3);
+                    return num.toFixed(3);
+                };
+                const resultMapping = {
+                    Dv: document.getElementById('resultDv'), Vd: document.getElementById('resultVd'), Vt: document.getElementById('resultVt'),
+                    RhoL: document.getElementById('resultRhoL'), RhoG: document.getElementById('resultRhoG'), MuL: document.getElementById('resultMuL'),
+                    MuG: document.getElementById('resultMuG'), Cd: document.getElementById('resultCd'), Re: document.getElementById('resultRe')
+                };
+                Object.keys(resultMapping).forEach(key => {
+                     resultMapping[key].textContent = formatNumber(results[key.toLowerCase()]);
+                });
+            }
+            
+            function updateChart(results) {
+                const ctx = ui.chartCanvas.getContext('2d');
+                const currentParams = results.inputs;
+                const backgroundData = [];
+                const base_V_tot = currentParams.V_tot;
+
+                for (let factor = 0.2; factor <= 2.0; factor += 0.1) {
+                    try {
+                        const temp_V_tot = base_V_tot * factor;
+                        if (temp_V_tot > 0) {
+                            const tempParams = { ...currentParams, V_tot: temp_V_tot };
+                            const pointResult = performCalculation(tempParams);
+                            backgroundData.push({ x: tempParams.V_tot, y: pointResult.Dv });
+                        }
+                    } catch (e) {}
+                }
+
+                if (chartInstance) chartInstance.destroy();
+
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            { label: `性能曲线 (${currentParams.refrigerant} @ ${currentParams.T}°C)`, data: backgroundData, borderColor: 'rgba(0, 123, 255, 0.6)', borderWidth: 2, pointRadius: 0, tension: 0.2 },
+                            { label: '当前计算点', data: [{ x: currentParams.V_tot, y: results.Dv }], backgroundColor: 'var(--danger-color)', pointRadius: 6, pointHoverRadius: 8, type: 'scatter' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: { title: { display: true, text: '气体体积流量 (m³/s)' }, beginAtZero: true },
+                            y: { title: { display: true, text: '计算内径 (m)' }, beginAtZero: true }
+                        },
+                        plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: (${ctx.parsed.x.toFixed(3)} m³/s, ${ctx.parsed.y.toFixed(3)} m)` } } }
+                    }
+                });
+            }
+            
+            function calculateAndDisplay() {
+                try {
+                    const params = {
+                        refrigerant: ui.refrigerant.value,
+                        T: parseFloat(ui.evapTemp.value),
+                        V_tot: parseFloat(ui.gasVolumeFlow.value),
+                        C: parseFloat(ui.safetyFactor.value),
+                        g: parseFloat(ui.gravity.value),
+                        Dp: parseFloat(ui.dropletSize.value) * 1e-6
+                    };
+
+                    if (Object.values(params).some(p => isNaN(p) && typeof p === 'number')) {
+                        throw new Error("所有输入项必须为有效数字。");
+                    }
+                    if (params.V_tot <= 0 || params.Dp <= 0 || params.C <= 0) {
+                        throw new Error("流量、安全系数和液滴直径必须为正数。");
+                    }
+                    
+                    const results = performCalculation(params);
+                    updateUI(results);
+                    updateChart(results);
+
+                } catch (error) {
+                    console.error("计算或显示时发生错误:", error);
+                    ui.errorMessage.textContent = `错误: ${error.message}`;
+                    ui.errorMessage.style.display = 'block';
+                }
+            }
+            
+            // --- 最终的初始化逻辑 ---
+            // 激活按钮并绑定事件
+            ui.calculateBtn.disabled = false;
+            ui.calculateBtn.textContent = '开始计算';
+            ui.calculateBtn.addEventListener('click', calculateAndDisplay);
+            
+            // 执行首次计算
+            calculateAndDisplay();
+        }
+    </script>
+</body>
+</html>
